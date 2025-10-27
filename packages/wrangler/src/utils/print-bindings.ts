@@ -56,8 +56,7 @@ export function printBindings(
 		log?: (message: string) => void;
 		registry?: WorkerRegistry | null;
 		local?: boolean;
-		multiWorkers?: boolean;
-		imagesLocalMode?: boolean;
+		isMultiWorkers?: boolean;
 		name?: string;
 		provisioning?: boolean;
 		warnIfNoBindings?: boolean;
@@ -66,7 +65,7 @@ export function printBindings(
 	let hasConnectionStatus = false;
 
 	const log = context.log ?? logger.log;
-	const multiWorkers = context.multiWorkers ?? getFlag("MULTIWORKER");
+	const isMultiWorkers = context.isMultiWorkers ?? getFlag("MULTIWORKER");
 	const getMode = createGetMode({
 		isProvisioning: context.provisioning,
 		isLocalDev: context.local,
@@ -634,7 +633,7 @@ export function printBindings(
 
 	if (output.length === 0) {
 		if (context.warnIfNoBindings) {
-			if (context.name && multiWorkers) {
+			if (context.name && isMultiWorkers) {
 				log(`No bindings found for ${chalk.blue(context.name)}`);
 			} else {
 				log("No bindings found.");
@@ -644,7 +643,7 @@ export function printBindings(
 		let title: string;
 		if (context.provisioning) {
 			title = `${chalk.red("Experimental:")} The following bindings need to be provisioned:`;
-		} else if (context.name && multiWorkers) {
+		} else if (context.name && isMultiWorkers) {
 			title = `${chalk.blue(context.name)} has access to the following bindings:`;
 		} else {
 			title = "Your Worker has access to the following bindings:";
@@ -725,7 +724,7 @@ export function printBindings(
 		log("");
 	}
 	let title: string;
-	if (context.name && multiWorkers) {
+	if (context.name && isMultiWorkers) {
 		title = `${chalk.blue(context.name)} is sending Tail events to the following Workers:`;
 	} else {
 		title = "Your Worker is sending Tail events to the following Workers:";

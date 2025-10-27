@@ -197,8 +197,8 @@ export function cloudflare(pluginConfig: PluginConfig = {}): vite.Plugin[] {
 					}
 				};
 
-				addBindingsShortcut(viteDevServer, ctx);
 				assertIsNotPreview(ctx.resolvedPluginConfig);
+				addBindingsShortcut(viteDevServer, ctx);
 
 				const inputInspectorPort = await getInputInspectorPortOption(
 					ctx.resolvedPluginConfig,

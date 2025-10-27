@@ -15,13 +15,13 @@ export function addBindingsShortcut(
 
 	const bindCLIShortcuts = server.bindCLIShortcuts.bind(server);
 	server.bindCLIShortcuts = (
-		options: vite.BindCLIShortcutsOptions<
+		options?: vite.BindCLIShortcutsOptions<
 			vite.ViteDevServer | vite.PreviewServer
 		>
 	) => {
-		const printBindingShortcut = {
+		const printBindingsShortcut = {
 			key: "b",
-			description: "list worker bindings",
+			description: "list configured Cloudflare bindings",
 			action: (server) => {
 				server.config.logger.info("");
 
@@ -61,8 +61,8 @@ export function addBindingsShortcut(
 			server.config.logger.info(
 				colors.dim(colors.green("  ➜")) +
 					colors.dim("  press ") +
-					colors.bold(`${printBindingShortcut.key} + enter`) +
-					colors.dim(` to ${printBindingShortcut.description}`)
+					colors.bold(`${printBindingsShortcut.key} + enter`) +
+					colors.dim(` to ${printBindingsShortcut.description}`)
 			);
 		}
 
@@ -70,7 +70,7 @@ export function addBindingsShortcut(
 			...options,
 			customShortcuts: [
 				...(options?.customShortcuts ?? []),
-				printBindingShortcut,
+				printBindingsShortcut,
 			],
 		});
 	};

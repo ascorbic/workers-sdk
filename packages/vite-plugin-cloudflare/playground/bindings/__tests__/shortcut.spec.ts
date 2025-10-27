@@ -16,11 +16,11 @@ test("display bindings shortcut by default", () => {
 	viteServer.bindCLIShortcuts({ print: true });
 
 	expect(normalize(serverLogs.info)).toMatch(
-		"press b + enter to list worker bindings"
+		"press b + enter to list configured Cloudflare bindings"
 	);
 });
 
-test("prints bindings with single worker", () => {
+test("prints bindings with a single Worker", () => {
 	// Create a test server with a spy on bindCLIShortcuts
 	const mockBindCLIShortcuts = vi.spyOn(viteServer, "bindCLIShortcuts");
 	// Create mock plugin context
@@ -77,7 +77,7 @@ test("prints bindings with single worker", () => {
 	`);
 });
 
-test("prints bindings action with multi workers", () => {
+test("prints bindings with multi Workers", () => {
 	// Create a test server with a spy on bindCLIShortcuts
 	const mockBindCLIShortcuts = vi.spyOn(viteServer, "bindCLIShortcuts");
 	// Create mock plugin context
