@@ -71,7 +71,6 @@ import { confirmLatestDeploymentOverwrite } from "../versions/deploy";
 import { getZoneForRoute } from "../zones";
 import { getRemoteConfigDiff } from "./config-diffs";
 import type { AssetsOptions } from "../assets";
-import type { WorkerMetadataBinding } from "../deployment-bundle/create-worker-upload-form";
 import type { Entry } from "../deployment-bundle/entry";
 import type { ComplianceConfig } from "../environment-variables/misc-variables";
 import type { PostTypedConsumerBody } from "../queues/client";
@@ -85,6 +84,7 @@ import type {
 	Config,
 	CustomDomainRoute,
 	Route,
+	WorkerMetadataBinding,
 	ZoneIdRoute,
 	ZoneNameRoute,
 } from "@cloudflare/workers-utils";
