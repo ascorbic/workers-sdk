@@ -265,7 +265,6 @@ export class RemoteRuntimeController extends RuntimeController {
 				sendMetrics: config.sendMetrics,
 				configPath: config.config,
 				bundleId: id,
-				minimal_mode: config.dev.remote === "minimal",
 				tail_logs: !!config.experimental?.tailLogs,
 			});
 

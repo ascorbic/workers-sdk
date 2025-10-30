@@ -163,19 +163,15 @@ export async function createPreviewSession(
 		abortSignal
 	);
 
-	const switchedExchangeUrl = switchHost(
-		exchange_url,
-		ctx.host,
-		!!ctx.zone
-	).toString();
+	const switchedExchangeUrl = switchHost(exchange_url, ctx.host, !!ctx.zone);
 
 	logger.debugWithSanitization(
 		"-- START EXCHANGE API REQUEST:",
-		` GET ${switchedExchangeUrl}`
+		` GET ${switchedExchangeUrl.toString()}`
 	);
 
 	logger.debug("-- END EXCHANGE API REQUEST");
-	const exchangeResponse = await fetch(switchedExchangeUrl, {
+	const exchangeResponse = await fetch(switchedExchangeUrl.toString(), {
 		signal: abortSignal,
 	});
 	const bodyText = await exchangeResponse.text();

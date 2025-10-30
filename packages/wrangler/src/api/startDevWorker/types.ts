@@ -4,6 +4,7 @@ import type {
 	CustomDomainRoute,
 	DurableObjectMigration,
 	Rule,
+	TailConsumer,
 	ZoneIdRoute,
 	ZoneNameRoute,
 } from "../../config/environment";
@@ -208,6 +209,7 @@ export type StartDevWorkerOptions = Omit<StartDevWorkerInput, "assets"> & {
 	entrypoint: string;
 	assets?: AssetsOptions;
 	name: string;
+	tailConsumers: TailConsumer[];
 };
 
 export type HookValues = string | number | boolean | object | undefined | null;

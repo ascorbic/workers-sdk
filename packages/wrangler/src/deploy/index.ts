@@ -246,8 +246,6 @@ export const deployCommand = createCommand({
 			MULTIWORKER: false,
 			RESOURCES_PROVISION: args.experimentalProvision ?? false,
 			ASSETS_RPC: false,
-			DEPLOY_REMOTE_DIFF_CHECK: args.experimentalDeployRemoteDiffCheck ?? false,
-			AUTOCREATE_RESOURCES: args.experimentalAutoCreate ?? false,
 			REALISH_TAIL_LOGS: false,
 		}),
 	},

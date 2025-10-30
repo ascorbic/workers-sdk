@@ -880,8 +880,6 @@ export const Handler = async (args: PagesDevArguments) => {
 			MULTIWORKER: Array.isArray(args.config),
 			RESOURCES_PROVISION: false,
 			ASSETS_RPC: false,
-			DEPLOY_REMOTE_DIFF_CHECK: false,
-			AUTOCREATE_RESOURCES: false,
 			REALISH_TAIL_LOGS: false,
 		},
 		() =>

@@ -8,6 +8,8 @@ import WebSocket from "ws";
 import { WranglerE2ETestHelper } from "./helpers/e2e-wrangler-test";
 import { generateResourceName } from "./helpers/generate-resource-name";
 
+declare const CLOUDFLARE_ACCOUNT_ID: string | undefined;
+
 const port = await getPort();
 const inspectorPort = await getPort();
 

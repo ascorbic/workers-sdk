@@ -424,7 +424,7 @@ export class ProxyController extends Controller<ProxyControllerEventMap> {
 		message: InspectorProxyWorkerOutgoingWebsocketMessage
 	) {
 		assert(
-			this.latestConfig?.dev.inspector !== false,
+			this.latestConfig?.dev.inspector !== undefined,
 			"Trying to handle inspector message when inspector is disabled"
 		);
 
