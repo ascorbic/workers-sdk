@@ -264,7 +264,8 @@ export const versionsUploadCommand = createCommand({
 			RESOURCES_PROVISION: args.experimentalProvision ?? false,
 			ASSETS_RPC: false,
 			DEPLOY_REMOTE_DIFF_CHECK: false,
-			AUTOCREATE_RESOURCES: args.experimentalAutoCreate,
+			AUTOCREATE_RESOURCES: args.experimentalAutoCreate ?? false,
+			REALISH_TAIL_LOGS: false,
 		}),
 	},
 	handler: async function versionsUploadHandler(args, { config }) {

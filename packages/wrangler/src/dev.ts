@@ -62,7 +62,8 @@ export const dev = createCommand({
 			RESOURCES_PROVISION: args.experimentalProvision ?? false,
 			ASSETS_RPC: args.experimentalAssetsRpc,
 			DEPLOY_REMOTE_DIFF_CHECK: false,
-			AUTOCREATE_RESOURCES: args.experimentalAutoCreate,
+			AUTOCREATE_RESOURCES: args.experimentalAutoCreate ?? false,
+			REALISH_TAIL_LOGS: args.experimentalTailLogs,
 		}),
 	},
 	metadata: {
