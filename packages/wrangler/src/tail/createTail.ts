@@ -10,7 +10,7 @@ export type { TailCLIFilters } from "./filters";
 export { translateCLICommandToFilterMessage } from "./filters";
 export { jsonPrintLogs, prettyPrintLogs } from "./printing";
 
-const TRACE_VERSION = "trace-v1";
+export const TRACE_VERSION = "trace-v1";
 
 /**
  * When creating a Tail, the response from the API contains

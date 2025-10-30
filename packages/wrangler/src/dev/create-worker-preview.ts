@@ -120,6 +120,12 @@ export interface CfPreviewToken {
 	 * })
 	 */
 	prewarmUrl: URL;
+	/**
+	 * A URL that when fetched starts a tail. Essentially, `wrangler tail` for realish previews.
+	 *
+	 * https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/tail/methods/create/
+	 */
+	tailUrl?: string;
 }
 
 // URLs are often relative to the zone. Sometimes the base zone
@@ -251,7 +257,10 @@ async function createPreviewToken(
 	const formData = createWorkerUploadForm(worker);
 	formData.set("wrangler-session-config", JSON.stringify(mode));
 
-	const { preview_token } = await fetchResult<{ preview_token: string }>(
+	const { preview_token, tail_url } = await fetchResult<{
+		preview_token: string;
+		tail_url?: string;
+	}>(
 		url,
 		{
 			method: "POST",
@@ -282,6 +291,7 @@ async function createPreviewToken(
 
 		inspectorUrl,
 		prewarmUrl,
+		tailUrl: tail_url,
 	};
 }
 
