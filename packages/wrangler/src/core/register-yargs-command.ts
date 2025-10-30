@@ -98,7 +98,6 @@ function createHandler(def: CommandDefinition) {
 						ASSETS_RPC: false,
 						DEPLOY_REMOTE_DIFF_CHECK: false,
 						AUTOCREATE_RESOURCES: args.experimentalAutoCreate,
-						REALISH_TAIL_LOGS: false,
 					};
 
 			await run(experimentalFlags, () =>

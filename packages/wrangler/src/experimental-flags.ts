@@ -7,7 +7,6 @@ export type ExperimentalFlags = {
 	ASSETS_RPC: boolean;
 	DEPLOY_REMOTE_DIFF_CHECK: boolean;
 	AUTOCREATE_RESOURCES: boolean;
-	REALISH_TAIL_LOGS: boolean;
 };
 
 const flags = new AsyncLocalStorage<ExperimentalFlags>();

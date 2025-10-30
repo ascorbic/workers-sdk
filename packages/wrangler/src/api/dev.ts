@@ -234,6 +234,8 @@ export async function unstable_dev(
 			MULTIWORKER: false,
 			RESOURCES_PROVISION: false,
 			ASSETS_RPC: false,
+			DEPLOY_REMOTE_DIFF_CHECK: false,
+			AUTOCREATE_RESOURCES: false,
 			REALISH_TAIL_LOGS: false,
 		},
 		() => startDev(devOptions)

@@ -63,7 +63,6 @@ export const dev = createCommand({
 			ASSETS_RPC: args.experimentalAssetsRpc,
 			DEPLOY_REMOTE_DIFF_CHECK: false,
 			AUTOCREATE_RESOURCES: args.experimentalAutoCreate,
-			REALISH_TAIL_LOGS: args.experimentalTailLogs,
 		}),
 	},
 	metadata: {
