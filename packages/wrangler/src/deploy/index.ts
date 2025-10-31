@@ -1,14 +1,17 @@
 import assert from "node:assert";
 import { statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import {
+	configFileName,
+	formatCompatibilityDate,
+	UserError,
+} from "@cloudflare/workers-utils";
 import chalk from "chalk";
 import { getAssetsOptions, validateAssetsArgsAndConfig } from "../assets";
-import { configFileName } from "../config";
 import { createCommand } from "../core/create-command";
 import { getEntry } from "../deployment-bundle/entry";
 import { confirm, prompt } from "../dialogs";
 import { getCIOverrideName } from "../environment-variables/misc-variables";
-import { UserError } from "../errors";
 import { isNonInteractiveOrCI } from "../is-interactive";
 import { logger } from "../logger";
 import { verifyWorkerMatchesCITag } from "../match-tag";
@@ -17,10 +20,9 @@ import { writeOutput } from "../output";
 import { getSiteAssetPaths } from "../sites";
 import { requireAuth } from "../user";
 import { collectKeyValues } from "../utils/collectKeyValues";
-import { formatCompatibilityDate } from "../utils/compatibility-date";
 import { getRules } from "../utils/getRules";
 import { getScriptName } from "../utils/getScriptName";
-import { isLegacyEnv } from "../utils/isLegacyEnv";
+import { useServiceEnvironments } from "../utils/useServiceEnvironments";
 import deploy from "./deploy";
 
 export const deployCommand = createCommand({
@@ -242,7 +244,6 @@ export const deployCommand = createCommand({
 		overrideExperimentalFlags: (args) => ({
 			MULTIWORKER: false,
 			RESOURCES_PROVISION: args.experimentalProvision ?? false,
-			REMOTE_BINDINGS: args.experimentalRemoteBindings ?? true,
 			DEPLOY_REMOTE_DIFF_CHECK: args.experimentalDeployRemoteDiffCheck ?? false,
 			AUTOCREATE_RESOURCES: args.experimentalAutoCreate,
 		}),
@@ -366,7 +367,7 @@ export const deployCommand = createCommand({
 			domains: args.domains,
 			assetsOptions,
 			legacyAssetPaths: siteAssetPaths,
-			legacyEnv: isLegacyEnv(config),
+			useServiceEnvironments: useServiceEnvironments(config),
 			minify: args.minify,
 			isWorkersSite: Boolean(args.site || config.site),
 			outDir: args.outdir,

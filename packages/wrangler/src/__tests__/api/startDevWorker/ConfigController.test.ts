@@ -57,12 +57,8 @@ describe("ConfigController", () => {
 			`,
 		});
 		await runWrangler("types");
-
-		const event = waitForConfigUpdate(controller);
 		await controller.set({ config: "./wrangler.toml" });
-		await event;
 
-		const event2 = waitForConfigUpdate(controller);
 		await seed({
 			"wrangler.toml": dedent/* toml */ `
 				name = "my-worker"
@@ -70,7 +66,7 @@ describe("ConfigController", () => {
 				compatibility_date = \"2025-06-01\"
 		    `,
 		});
-		await event2;
+		await controller.set({ config: "./wrangler.toml" });
 
 		await vi.waitFor(() => {
 			expect(std.out).toContain("Your types might be out of date.");
@@ -89,16 +85,14 @@ describe("ConfigController", () => {
             `,
 		});
 
-		const event = waitForConfigUpdate(controller);
 		await controller.set({ config: "./wrangler.toml" });
-
-		const { config } = await event;
-		await expect(unwrapHook(config.dev.auth)).resolves.toMatchObject({
+		await expect(
+			unwrapHook(controller.latestConfig?.dev.auth)
+		).resolves.toMatchObject({
 			accountId: "some-account-id",
 			apiToken: { apiToken: "some-api-token" },
 		});
 
-		const event2 = waitForConfigUpdate(controller);
 		await seed({
 			"wrangler.toml": dedent/* toml */ `
                 name = "my-worker"
@@ -107,9 +101,10 @@ describe("ConfigController", () => {
                 account_id = "1234567890"
             `,
 		});
-
-		const { config: config2 } = await event2;
-		await expect(unwrapHook(config2.dev.auth)).resolves.toMatchObject({
+		await controller.set({ config: "./wrangler.toml" });
+		await expect(
+			unwrapHook(controller.latestConfig?.dev.auth)
+		).resolves.toMatchObject({
 			accountId: "1234567890",
 			apiToken: { apiToken: "some-api-token" },
 		});
@@ -271,5 +266,52 @@ describe("ConfigController", () => {
 				},
 			},
 		});
+	});
+
+	it("should only log warnings once even with multiple config updates", async () => {
+		await seed({
+			"src/index.js": dedent/* javascript */ `
+				addEventListener('fetch', event => {
+					event.respondWith(new Response('hello world'))
+				})
+			`,
+			"wrangler.toml": dedent/* toml */ `
+				name = "my-worker"
+				main = "src/index.js"
+				compatibility_date = "2024-06-01"
+
+				[[analytics_engine_datasets]]
+				binding = "ANALYTICS"
+				dataset = "analytics_dataset"
+			`,
+		});
+
+		const event1 = waitForConfigUpdate(controller);
+		await controller.set({
+			config: "./wrangler.toml",
+		});
+		await event1;
+
+		const event2 = waitForConfigUpdate(controller);
+		await controller.patch({
+			dev: { liveReload: true },
+		});
+		await event2;
+
+		const event3 = waitForConfigUpdate(controller);
+		await controller.patch({
+			dev: { server: { port: 8787 } },
+		});
+		await event3;
+
+		const warningCount = std.warn
+			.split("\n")
+			.filter((line) =>
+				line.includes(
+					"Analytics Engine is not supported locally when using the service-worker format"
+				)
+			).length;
+
+		expect(warningCount).toBe(1);
 	});
 });

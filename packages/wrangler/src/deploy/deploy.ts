@@ -4,12 +4,20 @@ import path from "node:path";
 import { URLSearchParams } from "node:url";
 import { cancel } from "@cloudflare/cli";
 import { verifyDockerInstalled } from "@cloudflare/containers-shared";
+import {
+	APIError,
+	configFileName,
+	formatCompatibilityDate,
+	formatConfigSnippet,
+	ParseError,
+	parseNonHyphenedUuid,
+	UserError,
+} from "@cloudflare/workers-utils";
 import PQueue from "p-queue";
 import { Response } from "undici";
 import { syncAssets } from "../assets";
 import { fetchListResult, fetchResult } from "../cfetch";
 import { buildContainer, deployContainers } from "../cloudchamber/deploy";
-import { configFileName, formatConfigSnippet } from "../config";
 import { getNormalizedContainerOptions } from "../containers/config";
 import { getBindings, provisionBindings } from "../deployment-bundle/bindings";
 import { bundleWorker } from "../deployment-bundle/bundle";
@@ -31,13 +39,11 @@ import {
 	tagsAreEqual,
 	warnOnErrorUpdatingServiceAndEnvironmentTags,
 } from "../environments";
-import { UserError } from "../errors";
 import { getFlag } from "../experimental-flags";
 import { isNonInteractiveOrCI } from "../is-interactive";
 import { logger } from "../logger";
 import { getMetricsUsageHeaders } from "../metrics";
 import { isNavigatorDefined } from "../navigator-user-agent";
-import { APIError, ParseError, parseNonHyphenedUuid } from "../parse";
 import { getWranglerTmpDir } from "../paths";
 import {
 	ensureQueuesExistByConfig,
@@ -52,7 +58,6 @@ import {
 	maybeRetrieveFileSourceMap,
 } from "../sourcemap";
 import triggersDeploy from "../triggers/deploy";
-import { formatCompatibilityDate } from "../utils/compatibility-date";
 import { downloadWorkerConfig } from "../utils/download-worker-config";
 import { helpIfErrorIsSizeOrScriptStartup } from "../utils/friendly-validator-errors";
 import { printBindings } from "../utils/print-bindings";
@@ -65,24 +70,22 @@ import { confirmLatestDeploymentOverwrite } from "../versions/deploy";
 import { getZoneForRoute } from "../zones";
 import { getRemoteConfigDiff } from "./config-diffs";
 import type { AssetsOptions } from "../assets";
-import type { Config } from "../config";
-import type {
-	CustomDomainRoute,
-	Route,
-	ZoneIdRoute,
-	ZoneNameRoute,
-} from "../config/environment";
 import type { Entry } from "../deployment-bundle/entry";
-import type {
-	CfModule,
-	CfPlacement,
-	CfWorkerInit,
-} from "../deployment-bundle/worker";
 import type { ComplianceConfig } from "../environment-variables/misc-variables";
 import type { PostTypedConsumerBody } from "../queues/client";
 import type { LegacyAssetPaths } from "../sites";
 import type { RetrieveSourceMapFunction } from "../sourcemap";
 import type { ApiVersion, Percentage, VersionId } from "../versions/types";
+import type {
+	CfModule,
+	CfPlacement,
+	CfWorkerInit,
+	Config,
+	CustomDomainRoute,
+	Route,
+	ZoneIdRoute,
+	ZoneNameRoute,
+} from "@cloudflare/workers-utils";
 import type { FormData } from "undici";
 
 type Props = {
@@ -102,7 +105,8 @@ type Props = {
 	triggers: string[] | undefined;
 	routes: string[] | undefined;
 	domains: string[] | undefined;
-	legacyEnv: boolean | undefined;
+	/** Deprecated service environments.*/
+	useServiceEnvironments: boolean | undefined;
 	jsxFactory: string | undefined;
 	jsxFragment: string | undefined;
 	tsconfig: string | undefined;
@@ -518,18 +522,27 @@ See https://developers.cloudflare.com/workers/platform/compatibility-dates for m
 	const envName = props.env ?? "production";
 
 	const start = Date.now();
-	const prod = Boolean(props.legacyEnv || !props.env);
-	const notProd = !prod;
-	const workerName = notProd ? `${scriptName} (${envName})` : scriptName;
+	/** Whether to use the deprecated service environments path */
+	const useServiceEnvironments = Boolean(
+		props.useServiceEnvironments && props.env
+	);
+	const workerName = useServiceEnvironments
+		? `${scriptName} (${envName})`
+		: scriptName;
 	const workerUrl = props.dispatchNamespace
 		? `/accounts/${accountId}/workers/dispatch/namespaces/${props.dispatchNamespace}/scripts/${scriptName}`
-		: notProd
+		: useServiceEnvironments
 			? `/accounts/${accountId}/workers/services/${scriptName}/environments/${envName}`
 			: `/accounts/${accountId}/workers/scripts/${scriptName}`;
 
 	const { format } = props.entry;
 
-	if (!props.dispatchNamespace && prod && accountId && scriptName) {
+	if (
+		!props.dispatchNamespace &&
+		!useServiceEnvironments &&
+		accountId &&
+		scriptName
+	) {
 		const yes = await confirmLatestDeploymentOverwrite(
 			config,
 			accountId,
@@ -613,7 +626,12 @@ See https://developers.cloudflare.com/workers/platform/compatibility-dates for m
 			bundleType,
 			...bundle
 		} = props.noBundle
-			? await noBundleWorker(props.entry, props.rules, props.outDir)
+			? await noBundleWorker(
+					props.entry,
+					props.rules,
+					props.outDir,
+					config.python_modules.exclude
+				)
 			: await bundleWorker(
 					props.entry,
 					typeof destination === "string" ? destination : destination.path,
@@ -681,7 +699,7 @@ See https://developers.cloudflare.com/workers/platform/compatibility-dates for m
 			? await getMigrationsToUpload(scriptName, {
 					accountId,
 					config,
-					legacyEnv: props.legacyEnv,
+					useServiceEnvironments: props.useServiceEnvironments,
 					env: props.env,
 					dispatchNamespace: props.dispatchNamespace,
 				})
@@ -706,7 +724,7 @@ See https://developers.cloudflare.com/workers/platform/compatibility-dates for m
 			// have added the env name on to the script name. However, we must
 			// include it in the kv namespace name regardless (since there's no
 			// concept of service environments for kv namespaces yet).
-			scriptName + (!props.legacyEnv && props.env ? `-${props.env}` : ""),
+			scriptName + (useServiceEnvironments ? `-${props.env}` : ""),
 			props.legacyAssetPaths,
 			false,
 			props.dryRun,
@@ -822,7 +840,7 @@ See https://developers.cloudflare.com/workers/platform/compatibility-dates for m
 		const canUseNewVersionsDeploymentsApi =
 			workerExists &&
 			props.dispatchNamespace === undefined &&
-			prod &&
+			!useServiceEnvironments &&
 			format === "modules" &&
 			migrations === undefined &&
 			!config.first_party_worker &&
@@ -1171,12 +1189,12 @@ export async function publishRoutes(
 	{
 		workerUrl,
 		scriptName,
-		notProd,
+		useServiceEnvironments,
 		accountId,
 	}: {
 		workerUrl: string;
 		scriptName: string;
-		notProd: boolean;
+		useServiceEnvironments: boolean;
 		accountId: string;
 	}
 ): Promise<string[]> {
@@ -1199,7 +1217,7 @@ export async function publishRoutes(
 			// where the user is logged in via an API token that does not have "All Zones".
 			return await publishRoutesFallback(complianceConfig, routes, {
 				scriptName,
-				notProd,
+				useServiceEnvironments,
 				accountId,
 			});
 		} else {
@@ -1218,11 +1236,11 @@ async function publishRoutesFallback(
 	routes: Route[],
 	{
 		scriptName,
-		notProd,
+		useServiceEnvironments,
 		accountId,
-	}: { scriptName: string; notProd: boolean; accountId: string }
+	}: { scriptName: string; useServiceEnvironments: boolean; accountId: string }
 ) {
-	if (notProd) {
+	if (useServiceEnvironments) {
 		throw new UserError(
 			"Service environments combined with an API token that doesn't have 'All Zones' permissions is not supported.\n" +
 				"Either turn off service environments by setting `legacy_env = true`, creating an API token with 'All Zones' permissions, or logging in via OAuth",

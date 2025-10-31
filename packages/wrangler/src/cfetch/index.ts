@@ -1,5 +1,5 @@
 import { URLSearchParams } from "node:url";
-import { APIError } from "../parse";
+import { APIError } from "@cloudflare/workers-utils";
 import { maybeThrowFriendlyError } from "./errors";
 import { fetchInternal } from "./internal";
 import type { ComplianceConfig } from "../environment-variables/misc-variables";
@@ -133,6 +133,55 @@ export async function fetchPagedListResult<ResponseType>(
 			throwFetchError(resource, json, status);
 		}
 	}
+	return results;
+}
+
+/**
+ * Make a fetch request for a specific "page" of values using a cursor.
+ * This will make multiple requests sequentially to find the cursor for the desired page.
+ */
+export async function fetchCursorPage<ResponseType>(
+	complianceConfig: ComplianceConfig,
+	resource: string,
+	init: RequestInit = {},
+	queryParams?: URLSearchParams
+): Promise<ResponseType> {
+	let cursor: string | undefined;
+	let results: ResponseType = [] as ResponseType;
+
+	const page = parseInt(queryParams?.get("page") ?? "1", 10);
+	// Remove 'page' to then use cursor
+	queryParams?.delete("page");
+
+	for (let currentPage = 1; currentPage <= page; currentPage++) {
+		const pageQueryParams = new URLSearchParams(queryParams);
+		if (cursor) {
+			pageQueryParams.set("cursor", cursor);
+		}
+
+		const { response: json, status } = await fetchInternal<
+			FetchResult<ResponseType>
+		>(complianceConfig, resource, init, pageQueryParams);
+
+		if (json.success) {
+			if (currentPage === page) {
+				results = json.result;
+			}
+
+			if (hasCursor(json.result_info)) {
+				cursor = json.result_info.cursor;
+			} else {
+				// Requested page is out of bounds
+				if (currentPage < page) {
+					return [] as ResponseType;
+				}
+				break;
+			}
+		} else {
+			throwFetchError(resource, json, status);
+		}
+	}
+
 	return results;
 }
 

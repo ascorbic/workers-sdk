@@ -1,15 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright-chromium";
-import {
-	createBuilder,
-	createServer,
-	loadConfigFromFile,
-	mergeConfig,
-	preview,
-	Rollup,
-} from "vite";
 import { beforeAll, inject } from "vitest";
+import { getViteModuleToTest } from "./vite-module-to-test";
 import type * as http from "node:http";
 import type { Browser, Page } from "playwright-chromium";
 import type {
@@ -20,6 +13,7 @@ import type {
 	PluginOption,
 	PreviewServer,
 	ResolvedConfig,
+	Rollup,
 	UserConfig,
 	ViteDevServer,
 } from "vite";
@@ -76,6 +70,8 @@ export let browser: Browser = undefined!;
 export let viteTestUrl: string = "";
 export let watcher: Rollup.RollupWatcher | undefined = undefined;
 
+const vite = await getViteModuleToTest();
+
 export function setViteUrl(url: string): void {
 	viteTestUrl = url;
 }
@@ -103,9 +99,14 @@ beforeAll(async (s) => {
 		throw new Error("wsEndpoint not found");
 	}
 
+	const logLabel = "bootup: " + testName;
+
+	console.time(logLabel);
+	console.timeLog(logLabel, "Starting browser connect to", wsEndpoint);
 	browser = await chromium.connect(wsEndpoint);
 	// `@vitejs/plugin-basic-ssl` requires a manual confirmation step in the browser so we enable `ignoreHTTPSErrors` to bypass this
 	page = await browser.newPage({ ignoreHTTPSErrors: true });
+	console.timeLog(logLabel, `Browser connected`);
 
 	const globalConsole = console;
 	const warn = globalConsole.warn;
@@ -116,6 +117,7 @@ beforeAll(async (s) => {
 
 	try {
 		page.on("console", (msg) => {
+			console.timeLog(logLabel, `BROWSER LOG [${msg.type()}]: ${msg.text()}`);
 			// ignore favicon requests in headed browser
 			if (
 				process.env.VITE_DEBUG_SERVE &&
@@ -127,6 +129,7 @@ beforeAll(async (s) => {
 			browserLogs.push(msg.text());
 		});
 		page.on("pageerror", (error) => {
+			console.timeLog(logLabel, `BROWSER ERROR: ${error.message}`);
 			browserErrors.push(error);
 		});
 
@@ -151,6 +154,7 @@ beforeAll(async (s) => {
 				path.resolve(path.dirname(testPath), "serve.js"),
 			].find((i) => fs.existsSync(i));
 
+			console.timeLog(logLabel, "Starting test server...");
 			if (testCustomServe) {
 				// test has custom server configuration.
 				const mod = await import(testCustomServe);
@@ -167,6 +171,8 @@ beforeAll(async (s) => {
 			} else {
 				server = await startDefaultServe();
 			}
+			console.timeLog(logLabel, "Started test server...");
+			console.timeEnd(logLabel);
 		}
 	} catch (e) {
 		// Closing the page since an error in the setup, for example a runtime error
@@ -186,7 +192,7 @@ beforeAll(async (s) => {
 		await watcher?.close();
 		await browser?.close();
 	};
-}, 15_000);
+}, 20_000);
 
 export async function loadConfig(configEnv: ConfigEnv) {
 	let config: UserConfig | null = null;
@@ -202,7 +208,7 @@ export async function loadConfig(configEnv: ConfigEnv) {
 				`vite.config.${variantName}.${extension}`
 			);
 			if (fs.existsSync(configVariantPath)) {
-				const res = await loadConfigFromFile(configEnv, configVariantPath);
+				const res = await vite.loadConfigFromFile(configEnv, configVariantPath);
 				if (res) {
 					config = res.config;
 					break;
@@ -212,7 +218,7 @@ export async function loadConfig(configEnv: ConfigEnv) {
 	}
 	// config file from test root dir
 	if (!config) {
-		const res = await loadConfigFromFile(configEnv, undefined, rootDir);
+		const res = await vite.loadConfigFromFile(configEnv, undefined, rootDir);
 		if (res) {
 			config = res.config;
 		}
@@ -248,7 +254,7 @@ export async function loadConfig(configEnv: ConfigEnv) {
 			config?.logLevel
 		),
 	};
-	return mergeConfig(options, config || {});
+	return vite.mergeConfig(options, config || {});
 }
 
 export async function startDefaultServe(): Promise<
@@ -259,7 +265,7 @@ export async function startDefaultServe(): Promise<
 	if (!isBuild) {
 		process.env.VITE_INLINE = "inline-serve";
 		const config = await loadConfig({ command: "serve", mode: "development" });
-		viteServer = await (await createServer(config)).listen();
+		viteServer = await (await vite.createServer(config)).listen();
 		viteTestUrl = viteServer.resolvedUrls!.local[0]!;
 		if (viteServer.config.base === "/") {
 			viteTestUrl = viteTestUrl.replace(/\/$/, "");
@@ -275,7 +281,7 @@ export async function startDefaultServe(): Promise<
 				resolvedConfig = config;
 			},
 		});
-		const buildConfig = mergeConfig(
+		const buildConfig = vite.mergeConfig(
 			await loadConfig({
 				command: "build",
 				mode: "production",
@@ -284,7 +290,7 @@ export async function startDefaultServe(): Promise<
 				plugins: [resolvedPlugin()],
 			}
 		);
-		const builder = await createBuilder(buildConfig);
+		const builder = await vite.createBuilder(buildConfig);
 		await builder.buildApp();
 
 		const previewConfig = await loadConfig({
@@ -296,7 +302,7 @@ export async function startDefaultServe(): Promise<
 		// Make sure we are running from within the playground.
 		// Otherwise workerd will error with messages about not being allowed to escape the starting directory with `..`.
 		process.chdir(previewConfig.root);
-		const previewServer = await preview(previewConfig);
+		const previewServer = await vite.preview(previewConfig);
 		// prevent preview change NODE_ENV
 		process.env.NODE_ENV = _nodeEnv;
 		viteTestUrl = previewServer!.resolvedUrls!.local[0]!;

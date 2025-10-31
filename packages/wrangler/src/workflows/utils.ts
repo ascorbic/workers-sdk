@@ -1,4 +1,4 @@
-import { UserError } from "../errors";
+import { UserError } from "@cloudflare/workers-utils";
 import type { InstanceStatus, InstanceTriggerName } from "./types";
 
 export const emojifyInstanceStatus = (status: InstanceStatus) => {
@@ -19,6 +19,8 @@ export const emojifyInstanceStatus = (status: InstanceStatus) => {
 			return "🚫 Terminated";
 		case "waiting":
 			return "⏰ Waiting";
+		case "waitingForPause":
+			return "⏱️ Waiting for Pause";
 		default:
 			return "❓ Unknown";
 	}
@@ -68,11 +70,13 @@ export const validateStatus = (status: string): InstanceStatus => {
 			return "running";
 		case "terminated":
 			return "terminated";
+		case "waiting":
+			return "waiting";
+		case "waitingForPause":
+			return "waitingForPause";
 		default:
 			throw new UserError(
-				`Looks like you have provided a invalid status "${status}". Valid statuses are: queued, running, paused, errored, terminated, complete`
+				`Looks like you have provided a invalid status "${status}". Valid statuses are: queued, running, paused, errored, terminated, complete, waiting, waitingForPause`
 			);
 	}
 };
-
-export const workflowNameFormatMessage = `Workflow names must be 1-64 characters long, start with a letter, number, or underscore, and may only contain letters, numbers, underscores, or hyphens.`;
