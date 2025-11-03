@@ -7,6 +7,7 @@ import type { C3Context } from "types";
 const generate = async (ctx: C3Context) => {
 	await runFrameworkGenerator(ctx, [
 		ctx.project.name,
+		"--skip-install",
 		// We are using the Cloudflare template for Next.js projects
 		// This is a template maintained by Cloudflare that based on a standard Next.js starter project,
 		// and has already been configured to work with Cloudflare Workers
