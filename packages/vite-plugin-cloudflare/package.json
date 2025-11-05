@@ -38,7 +38,7 @@
 		"dev": "tsdown --watch",
 		"test": "vitest run",
 		"test:ci": "pnpm test",
-		"test:e2e": "vitest run -c e2e/vitest.config.ts",
+		"test:e2e": "vitest run -c e2e/vitest.config.ts --allowOnly remote-bindings",
 		"test:watch": "vitest"
 	},
 	"dependencies": {

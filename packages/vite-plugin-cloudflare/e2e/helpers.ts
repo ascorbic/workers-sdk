@@ -279,7 +279,11 @@ export async function fetchJson(url: string, info?: RequestInit) {
 /** Wait until a `vite dev` process is ready and capture the url on which it is listening. */
 export async function waitForReady(proc: Process) {
 	const match = await vi.waitUntil(
-		() => proc.stdout.match(/Local:\s+(http:\/\/localhost:\d+)/),
+		() => {
+			console.log(`===proc.stdout\n\n\n\n\n${proc.stdout}\n\n\n\n\n`);
+			console.log(`===proc.stderr\n\n\n\n\n${proc.stderr}\n\n\n\n\n`);
+			return proc.stdout.match(/Local:\s+(http:\/\/localhost:\d+)/);
+		},
 		{ interval: 100, timeout: 20_000 }
 	);
 	return match[1];

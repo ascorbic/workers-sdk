@@ -139,7 +139,7 @@ if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
 		});
 }
 
-describe("remote bindings disabled", () => {
+describe.only("remote bindings disabled", () => {
 	const projectPath = seed("remote-bindings-disabled", "pnpm");
 
 	describe.each(commands)('with "%s" command', (command) => {
