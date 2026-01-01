@@ -8,7 +8,7 @@ import {
 	UserError,
 } from "@cloudflare/workers-utils";
 import chalk from "chalk";
-import { ProxyAgent, setGlobalDispatcher } from "undici";
+import { EnvHttpProxyAgent, setGlobalDispatcher } from "undici";
 import makeCLI from "yargs";
 import { version as wranglerVersion } from "../package.json";
 import { aiFineTuneNamespace, aiNamespace } from "./ai";
@@ -348,7 +348,9 @@ import type { LoggerLevel } from "./logger";
 import type { CommonYargsArgv, SubHelp } from "./yargs-types";
 
 if (proxy) {
-	setGlobalDispatcher(new ProxyAgent(proxy));
+	// Use EnvHttpProxyAgent instead of ProxyAgent to respect NO_PROXY environment variable.
+	// This ensures that requests to localhost and other excluded hosts don't go through the proxy.
+	setGlobalDispatcher(new EnvHttpProxyAgent());
 	logger.log(
 		`Proxy environment variables detected. We'll use your proxy for fetch requests.`
 	);
